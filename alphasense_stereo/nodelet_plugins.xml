@@ -1,0 +1,7 @@
+<library path="lib/libalphasense_stereo_lib">
+  <class name="alphasense_stereo/stereo_undistort"
+         type="alphasense_stereo::StereoUndistortNodelet"
+         base_class_type="nodelet::Nodelet">
+    <description>Nodelet to perform image rectification on a pair of camera images.</description>
+  </class>
+</library>

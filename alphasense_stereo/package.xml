@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>alphasense_stereo</name>
+  <version>1.0.0</version>
+  <description>Stereo matching with Alphasense.</description>
+
+  <maintainer email="support@sevensense.ch">Sevensense</maintainer>
+  <license>3-clause BSD License</license>
+
+  <build_depend>catkin</build_depend>
+  <build_depend>catkin_simple</build_depend>
+
+  <depend>cv_bridge</depend>
+  <depend>image_transport</depend>
+  <depend>nodelet</depend>
+  <depend>opencv3_catkin</depend>
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>yaml_cpp_catkin</depend>
+
+  <export>
+    <nodelet plugin="${prefix}/nodelet_plugins.xml" />
+  </export>
+</package>

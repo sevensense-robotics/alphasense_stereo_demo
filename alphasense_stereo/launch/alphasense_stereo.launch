@@ -1,0 +1,16 @@
+<launch>
+  <arg name="enable_rqt_reconfigure" default="false"/>
+  <arg
+    name="calibration_file"
+    doc="The path to the camera calibration file."/>
+
+  <!-- ============================= undistortion ================================ -->
+  <include ns="alphasense_driver_ros" file="$(find alphasense_stereo)/launch/stereo.launch" >
+    <arg name ="calibration_file" value="$(arg calibration_file)" />
+  </include>
+
+  <!-- =========== Enable rqt if you want to adjust block matching parameters ======= -->
+  <group if="$(arg enable_rqt_reconfigure)">
+    <node pkg="rqt_reconfigure" type="rqt_reconfigure" name="rqt_reconfigure" />
+  </group>
+</launch>

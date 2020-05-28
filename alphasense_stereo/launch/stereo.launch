@@ -1,0 +1,58 @@
+<launch>
+<arg
+  name="calibration_file"
+  default="$(find alphasense_stereo)/param/alphasense_calib.yaml"
+  doc="The path to the configuration file for camera calibration file."/>
+<arg name="manager" default="default"/>
+<arg name="left" default="cam1" />
+<arg name="left_cam_name" default="$(arg left)" />
+<arg name="right" default="cam0" />
+<!-- On a regular Alphasense, the right image is flipped upside down. -->
+<arg name="is_right_flipped" default="true" />
+
+<!-- Setup nodelet manager. -->
+<arg name="respawn" default="false" />
+<arg name="approximate_sync" default="false" />
+<node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager"  />
+<arg     if="$(arg respawn)" name="bond" value="" />
+<arg unless="$(arg respawn)" name="bond" value="--no-bond" />
+
+<!-- Undistortion node -->
+<node pkg="nodelet" type="nodelet" name="stereo_undistort_$(arg manager)"
+      args="load alphasense_stereo/stereo_undistort $(arg manager) $(arg bond)"
+      respawn="$(arg respawn)" output="screen" >
+  <param name="calibration_file" value="$(arg calibration_file)"/>
+  <param name="is_right_flipped" value="$(arg is_right_flipped)"/>
+</node>
+
+
+<!-- Setup the right camera name if flipping is present in the camera.  -->
+<arg name="right_cam_name" default="$(arg right)" unless="$(arg is_right_flipped)"/>
+<arg name="right_cam_name" value="$(eval arg('right') + '_flipped')" if="$(arg is_right_flipped)" />
+
+<!-- Disparity image -->
+<node pkg="nodelet" type="nodelet" name="disparity_$(arg manager)"
+      args="load stereo_image_proc/disparity $(arg manager) $(arg bond)"
+respawn="$(arg respawn)" >
+  <param name="approximate_sync" value="$(arg approximate_sync)" />
+  <remap from="left/image_rect" to="$(arg left_cam_name)/image_rect" />
+  <remap from="left/camera_info" to="$(arg left_cam_name)/camera_info" />
+  <remap from="right/image_rect" to="$(arg right_cam_name)/image_rect" />
+  <remap from="right/camera_info" to="$(arg right_cam_name)/camera_info" />
+  <remap from="disparity" to="$(arg manager)_disparity" />
+</node>
+
+<!-- Reproject into PointCloud2 -->
+<node pkg="nodelet" type="nodelet" name="point_cloud2_$(arg manager)"
+      args="load stereo_image_proc/point_cloud2 $(arg manager) $(arg bond)"
+respawn="$(arg respawn)" >
+  <param name="approximate_sync" value="$(arg approximate_sync)" />
+  <remap from="left/image_rect_color" to="$(arg left_cam_name)/image_rect"/>
+  <remap from="left/camera_info" to="$(arg left_cam_name)/camera_info" />
+  <remap from="right/camera_info" to="$(arg right_cam_name)/camera_info" />
+  <remap from="disparity" to="$(arg manager)_disparity" />
+  <remap from="points2" to="$(arg manager)_stereo_cloud" />
+</node>
+
+
+</launch>
