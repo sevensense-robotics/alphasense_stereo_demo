@@ -20,10 +20,8 @@ void StereoUndistortNodelet::onInit() {
   try {
     NODELET_INFO_STREAM(
         "Loading File from the following path: " << kalibr_file);
-    bool is_right_flipped;
-    getPrivateNodeHandle().getParam("is_right_flipped", is_right_flipped);
     stereo_undistorter_.reset(
-        new StereoUndistortRos(YAML::LoadFile(kalibr_file), is_right_flipped));
+        new StereoUndistortRos(YAML::LoadFile(kalibr_file)));
   } catch (const std::exception& e) {
     NODELET_FATAL_STREAM(
         "Initializing node failed due to "

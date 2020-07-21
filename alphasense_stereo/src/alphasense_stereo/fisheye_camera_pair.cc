@@ -18,9 +18,9 @@ void FisheyeCamera::initUndistortRectifyMaps(
     const cv::Mat& R, const cv::Mat& P) {
   cv::fisheye::initUndistortRectifyMap(
       K_, D_, R, P, size_, CV_16SC2, map_1_, map_2_);
-  initialized_ = true;
   P_ = P;
   R_ = R;
+  initialized_ = true;
 }
 
 sensor_msgs::CameraInfo FisheyeCamera::generateCameraInfo() const {
@@ -45,24 +45,16 @@ FisheyeCamera FisheyeCamera::getFlipped() const {
   return FisheyeCamera(K_inv, D_, size_);
 }
 
-CameraPair::CameraPair(const YAML::Node& yaml_node, const bool is_right_flipped)
-    : is_right_flipped_(is_right_flipped) {
+CameraPair::CameraPair(const YAML::Node& yaml_node) {
   const auto cam0_node = yaml_node["cam0"];
   if (!cam0_node) {
     throw std::runtime_error("Cam0 node is missing, the yaml file is invalid.");
-  }
-  // “cam0” is on the right on Alphasense, parse it from YAML.
-  cam_right_ = fromYAMLNode(cam0_node);
-  if (is_right_flipped_) {
-    cam_right_flipped_ = cam_right_.getFlipped();
   }
   const auto cam1_node = yaml_node["cam1"];
   if (!cam1_node) {
     throw std::runtime_error("Cam1 node is missing, the yaml file is invalid.");
   }
-  // “cam1” is on the left on Alphasense.
-  cam_left_ = fromYAMLNode(cam1_node);
-
+  
   // Parse 2d vector.
   std::vector<std::vector<double>> rotation;
   std::vector<double> translation;
@@ -72,21 +64,41 @@ CameraPair::CameraPair(const YAML::Node& yaml_node, const bool is_right_flipped)
 
   // Convert extrinsics transformation to cv Mat.
   // OpenCV uses the convention of transformation of point coordinates from left
-  // to right camera frame.
+  // to right camera frame. (T_r_l)
   for (const auto& row : cam1_node["T_cn_cnm1"]) {
     const std::vector<double> row_in_T = row.as<std::vector<double>>();
     rotation.emplace_back(
         std::initializer_list<double>{row_in_T[0], row_in_T[1], row_in_T[2]});
     translation.emplace_back(row_in_T[3]);
   }
-  R_ = cv::Matx33d(
+
+  is_right_flipped_ = rotation[0][0] < 0;
+
+  //This is the equivalent to premultiplying a flipping matrix
+  if (is_right_flipped_) {
+    R_ = cv::Matx33d(
+           -1*rotation[0][0], -1*rotation[0][1], -1*rotation[0][2], -1*rotation[1][0],
+           -1*rotation[1][1], -1*rotation[1][2], rotation[2][0], rotation[2][1],
+           rotation[2][2]);
+    t_ = cv::Matx31d(-1*translation[0], -1*translation[1], translation[2]);
+  } else {
+    R_ = cv::Matx33d(
            rotation[0][0], rotation[0][1], rotation[0][2], rotation[1][0],
            rotation[1][1], rotation[1][2], rotation[2][0], rotation[2][1],
-           rotation[2][2])
-           .inv();
-  t_ = -R_ * cv::Matx31d(translation[0], translation[1], translation[2]);
+           rotation[2][2]);
+    t_ = cv::Matx31d(translation[0], translation[1], translation[2]);
+  }
 
-  // Checking that the x component of translation is negaitve.
+  //TODO should be able to swich left/right eventually
+
+  // “cam0” is on the right on Alphasense, parse it from YAML.
+  cam_right_ = fromYAMLNode(cam0_node);
+  cam_right_ = is_right_flipped_ ? cam_right_.getFlipped() : cam_right_;
+  // “cam1” is on the left on Alphasense.
+  cam_left_ = fromYAMLNode(cam1_node);
+
+
+  // Checking that the x component of translation is negative.
   if (t_(0, 0) > 0.0) {
     std::cerr << "Translation is " << t_ << std::endl;
     throw std::runtime_error(
@@ -95,18 +107,10 @@ CameraPair::CameraPair(const YAML::Node& yaml_node, const bool is_right_flipped)
 
   // Create rectification transformations.
   cv::Mat R1, R2, P1, P2, Q;
-  if (is_right_flipped_) {
-    stereoRectify(
-        cam_left_.K(), cam_left_.D(), cam_right_flipped_.K(),
-        cam_right_flipped_.D(), cam_left_.size(), R_, t_, R1, R2, P1, P2, Q,
-        cv::CALIB_ZERO_DISPARITY);
-    cam_right_flipped_.initUndistortRectifyMaps(R2, P2);
-  } else {
-    stereoRectify(
-        cam_left_.K(), cam_left_.D(), cam_right_.K(), cam_right_.D(),
-        cam_left_.size(), R_, t_, R1, R2, P1, P2, Q, cv::CALIB_ZERO_DISPARITY);
-    cam_right_.initUndistortRectifyMaps(R2, P2);
-  }
+  stereoRectify(
+      cam_left_.K(), cam_left_.D(), cam_right_.K(), cam_right_.D(),
+      cam_left_.size(), R_, t_, R1, R2, P1, P2, Q, cv::CALIB_ZERO_DISPARITY);
+  cam_right_.initUndistortRectifyMaps(R2, P2);
   cam_left_.initUndistortRectifyMaps(R1, P1);
 }
 
@@ -214,6 +218,7 @@ void CameraPair::stereoRectify(
       .convertTo(Q, Q.empty() ? CV_64F : Q.depth());
 }
 
+
 // This is moved from opencv, changed output Knew format for consistency.
 void CameraPair::estimateNewCameraMatrixForUndistortRectify(
     cv::Matx33d K, cv::Matx41d D, const cv::Size& image_size, cv::Matx33d R,
@@ -266,8 +271,7 @@ void CameraPair::estimateNewCameraMatrixForUndistortRectify(
   new_f[1] /= aspect_ratio;
   new_c[1] /= aspect_ratio;
 
-  // Checking whether the size is empty.
-  if (new_size != cv::Size()) {
+  if (!new_size.empty()) {
     double rx = new_size.width / static_cast<double>(image_size.width);
     double ry = new_size.height / static_cast<double>(image_size.height);
 
