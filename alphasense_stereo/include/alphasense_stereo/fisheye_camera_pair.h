@@ -17,7 +17,7 @@ class FisheyeCamera {
  public:
   FisheyeCamera(
       const cv::Matx33d& K, const cv::Matx41d& D, const cv::Size& size)
-      : K_(K), D_(D), size_(size) {}
+      :  K_(K), D_(D), size_(size) {}
 
   FisheyeCamera() = default;
 
@@ -59,7 +59,7 @@ class FisheyeCamera {
 class CameraPair {
  public:
   explicit CameraPair(
-      const YAML::Node& yaml_node, const bool is_right_flipped = true);
+      const YAML::Node& yaml_node);
 
   const FisheyeCamera& getCamLeft() const {
     return cam_left_;
@@ -67,10 +67,6 @@ class CameraPair {
 
   const FisheyeCamera& getCamRight() const {
     return cam_right_;
-  }
-
-  const FisheyeCamera& getCamRightFlipped() const {
-    return cam_right_flipped_;
   }
 
   bool isRightFlipped() const {
@@ -103,9 +99,8 @@ class CameraPair {
 
   // The right camera image could be mounted upside down.
   bool is_right_flipped_{true};
-  // Alphasense has a right side camera that's typically flipped. Hence a
-  // virtual flipped camera model for the right camera is created.
-  FisheyeCamera cam_left_, cam_right_, cam_right_flipped_;
+
+  FisheyeCamera cam_left_, cam_right_;
   // Transformation between cameras, default from cam_left_ to cam right
   cv::Matx33d R_;
   cv::Matx31d t_;
