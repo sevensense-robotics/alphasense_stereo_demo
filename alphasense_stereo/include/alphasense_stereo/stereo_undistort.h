@@ -21,23 +21,21 @@ using ExactSync = message_filters::Synchronizer<ExactPolicy>;
 class StereoUndistortRos {
  public:
   StereoUndistortRos(
-      const YAML::Node& yaml_node, const bool is_right_flipped = true);
+      const YAML::Node& yaml_node);
 
  private:
+ static constexpr size_t kQueueSize = 10u;
+
   void imageCallback(
       const sensor_msgs::ImageConstPtr& img_left_msg,
-      const sensor_msgs::ImageConstPtr& img_right_msg);
+      const sensor_msgs::ImageConstPtr& img_right_msg); 
 
-  static constexpr size_t kQueueSize = 10u;
-
-  // If the right image is flipped.
-  bool is_right_flipped_{true};
   CameraPair camera_pair_;
   std::unique_ptr<ExactSync> exact_sync_;
 
   image_transport::SubscriberFilter sub_image_left_, sub_image_right_;
   ros::Publisher pub_image_left_, pub_image_right_, pub_camera_info_left_,
-      pub_camera_info_right_, pub_image_right_flipped_;
+      pub_camera_info_right_;
   ros::NodeHandle node_handle_;
   image_transport::ImageTransport it_{node_handle_};
 };
