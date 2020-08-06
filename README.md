@@ -2,11 +2,12 @@
 
 
 The front camera pair of the Alphasense Core Development Kit can be used to
-acquire disparity maps and point clouds for several robotics applications. To
-allow everyone to benefit from such potential, in this repository we make
-available a minimal ROS based `stereo_image_proc` pipeline. Please note that
-this application is only suitable for demo purposes and some basic Linux/Ubuntu
+generate disparity maps and point clouds for several robotics applications. To
+allow everyone to benefit from such potential, we make
+available a minimal ROS based `stereo_image_proc` pipeline. Please note that some basic Linux/Ubuntu
 and ROS knowledge is required to set it up.
+
+*NOTE: This application is based on an OpenCV implementation for stereo-vision and provided as an example for interfacing to Alphasense Core’s driver APIs. Therefore, we recommend to use it only for demo purposes.*
 
 ![gif](/doc/images/alphasense.gif)
 
@@ -17,6 +18,7 @@ Please follow the
 from the
 [Alphasense Core manual](https://github.com/sevensense-robotics/alphasense_core_manual)
 to get your Alphasense Core Development Kit up and running with the ROS driver.
+
 
 ## Building the example
 
