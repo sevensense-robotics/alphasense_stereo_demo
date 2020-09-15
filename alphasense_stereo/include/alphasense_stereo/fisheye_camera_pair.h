@@ -73,6 +73,10 @@ class CameraPair {
     return is_right_flipped_;
   }
 
+  bool isLeftFlipped() const {
+    return is_left_flipped_;
+  }
+
  private:
   FisheyeCamera fromYAMLNode(const YAML::Node& node);
 
@@ -97,8 +101,9 @@ class CameraPair {
       cv::Matx33d& Knew, double balance, const cv::Size& new_size,  // NOLINT
       double fov_scale);
 
-  // The right camera image could be mounted upside down.
+  // The right or left camera image could be mounted upside down.
   bool is_right_flipped_{true};
+  bool is_left_flipped_{false};
 
   FisheyeCamera cam_left_, cam_right_;
   // Transformation between cameras, default from cam_left_ to cam right

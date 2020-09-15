@@ -72,7 +72,8 @@ CameraPair::CameraPair(const YAML::Node& yaml_node) {
     translation.emplace_back(row_in_T[3]);
   }
 
-  is_right_flipped_ = rotation[0][0] < 0;
+  is_right_flipped_ = rotation[0][0] < 0 && translation[0] > 0;
+  is_left_flipped_ = rotation[0][0] < 0 && translation[0] < 0;
 
   //This is the equivalent to premultiplying a flipping matrix
   if (is_right_flipped_) {
@@ -81,6 +82,12 @@ CameraPair::CameraPair(const YAML::Node& yaml_node) {
            -1*rotation[1][1], -1*rotation[1][2], rotation[2][0], rotation[2][1],
            rotation[2][2]);
     t_ = cv::Matx31d(-1*translation[0], -1*translation[1], translation[2]);
+  } else if (is_left_flipped_) {
+    R_ = cv::Matx33d(
+           -1*rotation[0][0], -1*rotation[0][1], -rotation[0][2], -1*rotation[1][0],
+           -1*rotation[1][1], rotation[1][2], -1*rotation[2][0], -1*rotation[2][1],
+           rotation[2][2]);
+    t_ = cv::Matx31d(translation[0], translation[1], translation[2]);
   } else {
     R_ = cv::Matx33d(
            rotation[0][0], rotation[0][1], rotation[0][2], rotation[1][0],
@@ -89,13 +96,12 @@ CameraPair::CameraPair(const YAML::Node& yaml_node) {
     t_ = cv::Matx31d(translation[0], translation[1], translation[2]);
   }
 
-  //TODO should be able to swich left/right eventually
-
   // “cam0” is on the right on Alphasense, parse it from YAML.
   cam_right_ = fromYAMLNode(cam0_node);
   cam_right_ = is_right_flipped_ ? cam_right_.getFlipped() : cam_right_;
   // “cam1” is on the left on Alphasense.
   cam_left_ = fromYAMLNode(cam1_node);
+  cam_left_ = is_left_flipped_ ? cam_left_.getFlipped() : cam_left_;
 
 
   // Checking that the x component of translation is negative.
