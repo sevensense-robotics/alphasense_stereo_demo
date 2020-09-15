@@ -52,6 +52,10 @@ void StereoUndistortRos::imageCallback(
       cv_bridge::toCvShare(img_left_msg, sensor_msgs::image_encodings::MONO8);
   const auto cv_img_right =
       cv_bridge::toCvShare(img_right_msg, sensor_msgs::image_encodings::MONO8);
+  if (camera_pair_.isLeftFlipped()) {
+    // Flip the image upside down inplace.
+    cv::flip(cv_img_left->image, cv_img_left->image, -1);
+  }
   camera_pair_.getCamLeft().undistort_rectify(cv_img_left->image);
   if (camera_pair_.isRightFlipped()) {
     // Flip the image upside down inplace.
